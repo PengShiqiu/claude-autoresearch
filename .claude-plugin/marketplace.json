@@ -1,0 +1,21 @@
+{
+  "name": "claude-auto-research",
+  "owner": {
+    "name": "PengShiqiu"
+  },
+  "metadata": {
+    "description": "Skills for the Autoresearch autonomous experiment loop - Generate research plans and execute iterative optimization experiments with QA gates",
+    "version": "1.1.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-auto-research-skills",
+      "source": "./",
+      "description": "Research plan generation and autonomous experiment execution skills with QA gates and progress tracking",
+      "version": "1.1.0",
+      "keywords": ["autoresearch", "experiment", "optimization", "iteration", "qa-gate", "research"],
+      "category": "productivity",
+      "skills": "./skills/"
+    }
+  ]
+}

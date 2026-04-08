@@ -71,7 +71,7 @@ user-invocable: true
 2. 测试检查 — 全量测试通过
 3. 评估检查 — 采集性能数据
 4. 稳定性检查 — 如配置了长时间测试
-5. 指标对比 — 与当前最优值比较
+5. 指标对比 — 与当前最优值比较（结合 research-plan 中指标**方向**：越低越好 / 越高越好，判断是否退化）
 
 **每个门禁必须通过才继续下一个。任何门禁失败 → 立即回退。**
 
@@ -103,6 +103,29 @@ elif 门禁失败 OR 指标退化:
 
 **更新 research-plan.md 实验记录表：**
 在表格中添加一行。
+
+---
+
+## 批量循环
+
+使用 `autoresearch.sh` 可自动循环执行。脚本支持两种布局：
+
+**部署布局（推荐，由 init 技能部署）：**
+```bash
+# 从项目 autoresearch/ 目录运行
+bash autoresearch/autoresearch.sh 10
+```
+
+**插件内布局：**
+```bash
+# 从插件根目录运行
+bash skills/run/autoresearch.sh 10
+
+# 或从 skills/run/ 目录运行
+cd skills/run && bash autoresearch.sh 10
+```
+
+脚本会自动检测 `research-plan.md` 位置（优先 `autoresearch/research-plan.md`，其次项目根目录）。
 
 ---
 

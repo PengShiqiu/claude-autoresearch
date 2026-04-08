@@ -8,16 +8,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 核心组件
 
+**插件目录结构：**
+
 ```
-autoresearch/
-├── .claude-plugin/plugin.json    # 插件配置
+autoresearch/                     # 插件根目录
+├── .claude-plugin/
+│   ├── plugin.json               # 插件配置
+│   └── marketplace.json          # 市场元数据
 ├── skills/
-│   ├── init/SKILL.md             # 生成 research-plan.md 的交互式技能
-│   └── run/SKILL.md              # 执行单次实验的技能
+│   ├── init/
+│   │   ├── SKILL.md              # 生成研究计划 + 部署文件的交互式技能
+│   │   └── memhook-research-plan.md  # 研究计划示例
+│   └── run/
+│       ├── SKILL.md              # 执行单次实验的技能
+│       └── autoresearch.sh       # 主循环脚本（源文件）
 ├── scripts/
-│   └── autoresearch.sh           # 主循环脚本
-└── examples/
-    └── memhook-research-plan.md  # 研究计划示例
+│   └── autoresearch.sh           # 主循环脚本（副本，与 skills/run/ 同步）
+├── CLAUDE.md
+└── README.md
+```
+
+**部署到用户项目后的结构（由 init 技能创建）：**
+
+```
+用户项目/
+└── autoresearch/
+    ├── research-plan.md    ← 研究计划（init 生成）
+    ├── autoresearch.sh     ← 执行脚本（从插件拷贝）
+    ├── SKILL.md            ← 执行技能（从插件拷贝）
+    ├── progress.txt        ← 日志（运行时生成）
+    └── archive/            ← 进度归档（运行时生成）
 ```
 
 ### 工作流程
@@ -27,11 +47,14 @@ autoresearch/
    ↓
 2. init 技能通过问答生成 research-plan.md
    ↓
-3. 用户运行 ./scripts/autoresearch.sh [N]
+3. init 技能部署执行文件到项目 autoresearch/ 目录
+   （拷贝 autoresearch.sh + SKILL.md）
    ↓
-4. autoresearch.sh 拼接 run 技能 + research-plan.md 作为提示词
+4. 用户运行 bash autoresearch/autoresearch.sh [N]
    ↓
-5. Claude Agent 执行迭代：
+5. autoresearch.sh 拼接 run 技能 + research-plan.md 作为提示词
+   ↓
+6. Claude Agent 执行迭代：
    - 阅读 research-plan.md 和 progress.txt
    - 选择实验方向（自主决策）
    - 修改代码 → git commit
@@ -39,7 +62,7 @@ autoresearch/
    - 决策：保留 or git reset
    - 记录结果到 progress.txt 和 research-plan.md
    ↓
-6. 输出 <promise>COMPLETE</promise> 时结束，否则继续下一轮
+7. 输出 <promise>COMPLETE</promise> 时结束，否则继续下一轮
 ```
 
 ### 技能设计
@@ -47,12 +70,13 @@ autoresearch/
 #### init 技能
 
 - **触发词**：`/autoresearch-init`、`init research`、`create research plan`
-- **输出**：项目根目录的 `research-plan.md`
+- **输出**：项目 `autoresearch/research-plan.md` + 部署执行文件
 - **流程**：
   1. 分析项目（CLAUDE.md、文件结构、已有研究计划）
   2. 交互式问答收集：研究目标、评估方法、文件规则、QA 门禁
-  3. 生成 research-plan.md
-  4. 执行首次基准评估
+  3. 生成 research-plan.md 到 autoresearch/
+  4. 部署 autoresearch.sh + SKILL.md 到项目 autoresearch/ 目录
+  5. 执行首次基准评估
 
 #### run 技能
 
@@ -81,10 +105,10 @@ autoresearch/
 
 ### autoresearch.sh 机制
 
-1. **提示词拼接**：通用研究方法论（run/SKILL.md）+ 项目规则（research-plan.md）
+1. **提示词拼接**：通用研究方法论（SKILL.md）+ 项目规则（research-plan.md）
 2. **迭代控制**：for 循环，最多 N 次，检测 `<promise>COMPLETE</promise>` 提前退出
-3. **进度归档**：每次运行前归档旧的 progress.txt 到 `scripts/archive/{date}/`
-4. **路径检测**：支持从项目根目录或 scripts/ 目录运行
+3. **进度归档**：每次运行前归档旧的 progress.txt 到 `autoresearch/archive/{date}/`
+4. **路径检测**：自动检测 research-plan.md 位置（优先 `autoresearch/`，其次项目根目录）；支持部署布局、插件内布局、旧布局
 
 ### 设计原则
 
@@ -96,9 +120,10 @@ autoresearch/
 
 ### 扩展到新项目
 
-1. 将 `autoresearch/` 目录作为插件安装到项目
-2. 运行 `/autoresearch-init` 生成项目的 research-plan.md
-3. 运行 `./scripts/autoresearch.sh [N]` 启动自主研究循环
+1. 将本插件安装到 Claude Code
+2. 在目标项目中运行 `/autoresearch-init`
+3. init 技能自动在项目中创建 `autoresearch/` 目录并部署执行文件
+4. 运行 `bash autoresearch/autoresearch.sh [N]` 启动自主研究循环
 
 ### 代码规范
 

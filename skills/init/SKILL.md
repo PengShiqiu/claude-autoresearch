@@ -1,12 +1,12 @@
 ---
 name: autoresearch-init
-description: "交互式生成研究计划文档（research-plan.md）。适用于：启动自动化研究循环、性能优化、参数调优等探索性任务。Triggers on: init research, create research plan, start autoresearch, setup autoresearch."
+description: "交互式生成研究计划文档（research-plan.md）并部署执行文件到项目目录。适用于：启动自动化研究循环、性能优化、参数调优等探索性任务。Triggers on: init research, create research plan, start autoresearch, setup autoresearch."
 user-invocable: true
 ---
 
-# Autoresearch 初始化 — 生成研究计划
+# Autoresearch 初始化 — 生成研究计划 & 部署执行文件
 
-交互式生成 `research-plan.md`，为 autoresearch 循环提供项目特定的研究规则。
+交互式生成 `research-plan.md`，并将执行脚本和技能文件部署到项目的 `autoresearch/` 目录。
 
 ---
 
@@ -14,7 +14,9 @@ user-invocable: true
 
 1. 分析当前项目结构和代码
 2. 通过交互式问答收集研究参数
-3. 生成 `research-plan.md` 到项目根目录
+3. 生成 `research-plan.md` 到项目 `autoresearch/` 目录
+4. 部署执行文件到项目 `autoresearch/` 目录
+5. 执行首次基准评估
 
 ---
 
@@ -24,8 +26,8 @@ user-invocable: true
 
 1. **读取项目 CLAUDE.md**（如存在）— 了解项目上下文
 2. **扫描项目结构** — 识别主要源文件、测试文件、构建系统
-3. **检查已有 research-plan.md** — 如存在，询问是否覆盖或更新
-4. **检查已有 progress.txt** — 如存在，读取历史实验数据
+3. **检查已有 autoresearch/research-plan.md** — 如存在，询问是否覆盖或更新
+4. **检查已有 autoresearch/progress.txt** — 如存在，读取历史实验数据
 
 ---
 
@@ -94,7 +96,7 @@ user-invocable: true
 
 ## 第三步：生成 research-plan.md
 
-根据问答结果，按以下模板生成 `research-plan.md`：
+根据问答结果，按以下模板生成到 `autoresearch/research-plan.md`：
 
 ```markdown
 # {项目名} 研究计划
@@ -105,7 +107,7 @@ user-invocable: true
 
 {一句话描述研究目标}
 
-**核心指标**：{指标名}，{方向}，目标 <{目标值}>
+**核心指标**：{指标名}，{方向}，目标：{目标描述}（「越低越好」写清上限/降幅，「越高越好」写清下限/升幅）
 
 ## 评估方法
 
@@ -131,7 +133,7 @@ user-invocable: true
 1. {gate_1}
 2. {gate_2}
 3. {gate_n}
-4. 核心指标不高于当前最优值（可在噪声范围内波动）
+4. 核心指标相对当前最优**不退化**（在约定噪声范围内视为持平）：以本计划「核心指标」中的**方向**为准——「越低越好」时新结果不得劣于当前最优，「越高越好」时新结果不得劣于当前最优
 
 ## 迭代参数
 
@@ -156,13 +158,80 @@ user-invocable: true
 
 ---
 
-## 第四步：首次评估
+## 第四步：部署执行文件到项目目录
 
-生成 research-plan.md 后，执行一次基准评估：
+生成 `research-plan.md` 后，将执行文件从插件技能目录拷贝到用户项目的 `autoresearch/` 目录。
+
+### 目标结构
+
+```
+用户项目/
+└── autoresearch/
+    ├── research-plan.md    ← 刚生成的研究计划
+    ├── autoresearch.sh     ← 主循环脚本（从插件拷贝）
+    ├── SKILL.md            ← 执行技能（从插件拷贝）
+    └── progress.txt        ← 运行时自动生成
+```
+
+### 源文件位置
+
+| 文件 | 源路径（插件技能目录） | 目标路径（用户项目） |
+|------|----------------------|-------------------|
+| `autoresearch.sh` | 本技能目录 `../run/autoresearch.sh` | 用户项目 `autoresearch/autoresearch.sh` |
+| `SKILL.md` | 本技能目录 `../run/SKILL.md` | 用户项目 `autoresearch/SKILL.md` |
+
+### 操作步骤
+
+1. 创建用户项目的 `autoresearch/` 目录（如不存在）
+2. 将 `autoresearch.sh` 和 `SKILL.md` 从本插件技能目录拷贝到 `autoresearch/`（若目标已存在则**不覆盖**，提示用户确认）
+3. 确认 `autoresearch/autoresearch.sh` 具有可执行权限（`chmod +x`）
+4. 告知用户运行命令：`bash autoresearch/autoresearch.sh [N]`
+
+### 注意
+
+- 如果用户项目已有 `autoresearch/` 目录，不要覆盖其中不相关的文件
+- 如果 `research-plan.md` 或 `progress.txt` 已存在，先执行归档（见下方）
+- 此步骤在生成 research-plan.md 之后执行
+
+---
+
+## 归档上一轮运行
+
+**写入新的 research-plan.md 前，检查用户项目 `autoresearch/` 目录下是否已有上一轮的文件：**
+
+1. 若 `autoresearch/research-plan.md` 存在，先读取当前内容
+2. 若 `progress.txt` 除标题外还有内容：
+   - 创建归档目录：`autoresearch/archive/YYYY-MM-DD/`
+   - 将当前 `research-plan.md` 与 `progress.txt` 复制到归档
+   - 用新的标题头重置 `progress.txt`
+
+---
+
+## 第五步：首次基准评估
+
+生成 research-plan.md 并部署文件后，执行一次基准评估：
 
 1. 运行评估命令采集当前指标
-2. 将结果写入"当前最优"部分
+2. 将结果写入 research-plan.md 的"当前最优"部分
 3. 如果有历史数据（progress.txt），一并整理到实验记录表
+
+---
+
+## 保存前检查清单
+
+写入文件前请确认：
+
+- [ ] **autoresearch/ 目录已创建**
+- [ ] **research-plan.md 已写入** `autoresearch/research-plan.md`
+- [ ] **autoresearch.sh 已拷贝**到 `autoresearch/` 且具有可执行权限
+- [ ] **SKILL.md 已拷贝**到 `autoresearch/`
+- [ ] **已归档上一轮**（若已有 research-plan.md 且 progress.txt 有内容）
+- [ ] **核心指标已填写**（名称、方向、目标值）
+- [ ] **评估命令可执行**（build_cmd / eval_cmd / test_cmd）
+- [ ] **文件规则已明确**（可修改 / 不可修改标记完整）
+- [ ] **QA 门禁命令可执行**
+- [ ] **基准评估已完成**，"当前最优"部分已填写
+- [ ] **Git 状态干净**（无未提交的变更干扰后续实验）
 
 ---
 
@@ -172,3 +241,4 @@ user-invocable: true
 - 文件规则中的"不可修改"列表会被 autoresearch 循环严格执行
 - QA 门禁命令必须是可执行的 shell 命令
 - 指标解析规则要明确到可以自动化提取数值
+- 示例研究计划见本技能目录下的 `memhook-research-plan.md`

@@ -20,7 +20,7 @@ Autoresearch 是一个 Claude Code 插件，通过自主 Agent 循环自动化�
 ```
 
 1. **初始化**：`/autoresearch-init` 交互式生成 `research-plan.md`
-2. **循环**：`./scripts/autoresearch.sh [N]` 执行最多 N 次迭代
+2. **循环**：`bash skills/run/autoresearch.sh [N]` 执行最多 N 次迭代
 3. **每轮**：
    - 阅读 history → 选择方向 → 修改代码 → QA 门禁 → 决策
    - 成功：保留 commit，记录结果
@@ -51,7 +51,7 @@ cd your-project
 /autoresearch-init
 
 # 2. 启动自主研究循环（最多 10 次迭代）
-./scripts/autoresearch/autoresearch.sh 10
+bash skills/run/autoresearch.sh 10
 ```
 
 ## 使用指南
@@ -66,17 +66,13 @@ cd your-project
 4. **QA 门禁**：每次实验必须通过哪些检查？
 5. **迭代参数**：最大迭代次数、成功阈值
 
-示例生成的 `research-plan.md` 见 `examples/memhook-research-plan.md`。
+示例生成的 `research-plan.md` 见 `skills/init/memhook-research-plan.md`。
 
 ### 步骤 2：启动研究循环
 
 ```bash
 # 运行最多 10 次迭代
-./scripts/autoresearch/autoresearch.sh 10
-
-# 从 scripts 目录运行也支持
-cd scripts
-bash ../autoresearch/autoresearch.sh 10
+bash skills/run/autoresearch.sh 10
 ```
 
 循环会在以下情况结束：
@@ -95,7 +91,7 @@ ls scripts/archive/
 
 ## 示例：memhook 性能优化
 
-参见 `examples/memhook-research-plan.md` 完整示例。
+参见 `skills/init/memhook-research-plan.md` 完整示例。
 
 **研究目标**：降低 memhook（内存泄漏检测工具）的运行时开销
 
@@ -128,16 +124,18 @@ ls scripts/archive/
 
 ```
 autoresearch/
-├── .claude-plugin/plugin.json    # 插件配置
+├── .claude-plugin/
+│   ├── plugin.json               # 插件配置
+│   └── marketplace.json          # 市场元数据
 ├── skills/
-│   ├── init/SKILL.md             # 初始化技能
-│   └── run/SKILL.md              # 运行技能
-├── scripts/
-│   └── autoresearch.sh           # 主循环脚本
-├── examples/
-│   └── memhook-research-plan.md  # 研究计划示例
-├── CLAUDE.md                      # 插件开发文档
-└── README.md                      # 本文件
+│   ├── init/
+│   │   ├── SKILL.md              # 初始化技能
+│   │   └── memhook-research-plan.md  # 研究计划示例
+│   └── run/
+│       ├── SKILL.md              # 运行技能
+│       └── autoresearch.sh       # 主循环脚本
+├── CLAUDE.md                     # 插件开发文档
+└── README.md                     # 本文件
 ```
 
 ## 设计原则
