@@ -275,7 +275,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
   CLAUDE_START=$(date +%s)
   # 运行 claude agent
-  OUTPUT=$(claude --dangerously-skip-permissions --print < "$ITERATION_PROMPT" 2>&1 | tee /dev/stderr) || true
+  OUTPUT=$(claude --dangerously-skip-permissions --print --model haiku < "$ITERATION_PROMPT" 2>&1 | tee /dev/stderr) || true
   CLAUDE_END=$(date +%s)
   _debug "claude finished iteration=$i duration_sec=$((CLAUDE_END - CLAUDE_START)) output_chars=${#OUTPUT}"
 

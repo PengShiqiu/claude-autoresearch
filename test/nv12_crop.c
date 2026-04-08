@@ -22,8 +22,20 @@ void nv12_crop(const uint8_t *src, const nv12_image_t *src_info,
     uint8_t *dst_y = dst;
 
     for (int row = 0; row < crop_h; row++) {
-        /* AVX2 主循环：每次处理 32 字节 */
-        for (int i = 0; i < vec_len; i += 32) {
+        /* AVX2 主循环：4x展开，每次处理 128 字节 */
+        int i = 0;
+        for (; i + 128 <= vec_len; i += 128) {
+            __m256i d0 = _mm256_loadu_si256((__m256i*)(src_y + i));
+            __m256i d1 = _mm256_loadu_si256((__m256i*)(src_y + i + 32));
+            __m256i d2 = _mm256_loadu_si256((__m256i*)(src_y + i + 64));
+            __m256i d3 = _mm256_loadu_si256((__m256i*)(src_y + i + 96));
+            _mm256_storeu_si256((__m256i*)(dst_y + i), d0);
+            _mm256_storeu_si256((__m256i*)(dst_y + i + 32), d1);
+            _mm256_storeu_si256((__m256i*)(dst_y + i + 64), d2);
+            _mm256_storeu_si256((__m256i*)(dst_y + i + 96), d3);
+        }
+        /* 处理剩余 32 字节块 */
+        for (; i < vec_len; i += 32) {
             __m256i data = _mm256_loadu_si256((__m256i*)(src_y + i));
             _mm256_storeu_si256((__m256i*)(dst_y + i), data);
         }
@@ -43,8 +55,20 @@ void nv12_crop(const uint8_t *src, const nv12_image_t *src_info,
     uint8_t *dst_uv = dst + (size_t)crop_h * dst_stride;
 
     for (int row = 0; row < uv_crop_h; row++) {
-        /* AVX2 主循环 */
-        for (int i = 0; i < vec_len; i += 32) {
+        /* AVX2 主循环：4x展开 */
+        int i = 0;
+        for (; i + 128 <= vec_len; i += 128) {
+            __m256i d0 = _mm256_loadu_si256((__m256i*)(src_uv + i));
+            __m256i d1 = _mm256_loadu_si256((__m256i*)(src_uv + i + 32));
+            __m256i d2 = _mm256_loadu_si256((__m256i*)(src_uv + i + 64));
+            __m256i d3 = _mm256_loadu_si256((__m256i*)(src_uv + i + 96));
+            _mm256_storeu_si256((__m256i*)(dst_uv + i), d0);
+            _mm256_storeu_si256((__m256i*)(dst_uv + i + 32), d1);
+            _mm256_storeu_si256((__m256i*)(dst_uv + i + 64), d2);
+            _mm256_storeu_si256((__m256i*)(dst_uv + i + 96), d3);
+        }
+        /* 处理剩余 32 字节块 */
+        for (; i < vec_len; i += 32) {
             __m256i data = _mm256_loadu_si256((__m256i*)(src_uv + i));
             _mm256_storeu_si256((__m256i*)(dst_uv + i), data);
         }
