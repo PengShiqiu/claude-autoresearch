@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O2 -Wall -Wextra -mavx2 -msse4.2
+CFLAGS = -O3 -march=native -Wall -Wextra -mavx2 -msse4.2
 LDFLAGS = -lm
 
 .PHONY: all bench test clean
