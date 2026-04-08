@@ -22,12 +22,12 @@ void nv12_crop(const uint8_t *src, const nv12_image_t *src_info,
     uint8_t *dst_y = dst;
 
     for (int row = 0; row < crop_h; row++) {
-        /* 预取后续行数据到 L1 缓存，隐藏内存延迟 */
+        /* 预取后续行数据，使用 NTA hint 避免缓存污染 */
         if (row + 2 < crop_h) {
-            _mm_prefetch((char*)(src_y + 2 * src_stride), _MM_HINT_T0);
+            _mm_prefetch((char*)(src_y + 2 * src_stride), _MM_HINT_NTA);
         }
-        if (row + 4 < crop_h) {
-            _mm_prefetch((char*)(src_y + 4 * src_stride), _MM_HINT_T0);
+        if (row + 3 < crop_h) {
+            _mm_prefetch((char*)(src_y + 3 * src_stride), _MM_HINT_NTA);
         }
         /* AVX2 主循环：4x展开，每次处理 128 字节 */
         int i = 0;
@@ -62,12 +62,12 @@ void nv12_crop(const uint8_t *src, const nv12_image_t *src_info,
     uint8_t *dst_uv = dst + (size_t)crop_h * dst_stride;
 
     for (int row = 0; row < uv_crop_h; row++) {
-        /* 预取后续行数据到 L1 缓存，隐藏内存延迟 */
+        /* 预取后续行数据，使用 NTA hint 避免缓存污染 */
         if (row + 2 < uv_crop_h) {
-            _mm_prefetch((char*)(src_uv + 2 * src_stride), _MM_HINT_T0);
+            _mm_prefetch((char*)(src_uv + 2 * src_stride), _MM_HINT_NTA);
         }
-        if (row + 4 < uv_crop_h) {
-            _mm_prefetch((char*)(src_uv + 4 * src_stride), _MM_HINT_T0);
+        if (row + 3 < uv_crop_h) {
+            _mm_prefetch((char*)(src_uv + 3 * src_stride), _MM_HINT_NTA);
         }
         /* AVX2 主循环：4x展开 */
         int i = 0;
