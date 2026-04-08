@@ -1,0 +1,10 @@
+{
+  "name": "autoresearch",
+  "version": "1.0.0",
+  "description": "通用自主研究循环插件 — 自动化实验、QA 门禁、结果追踪。适用于性能优化、参数调优等探索性任务。",
+  "author": {
+    "name": "PengShiqiu"
+  },
+  "keywords": ["autoresearch", "experiment", "optimization", "iteration", "qa-gate"],
+  "skills": "./skills/"
+}
