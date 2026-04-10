@@ -99,7 +99,6 @@ try_resolve() {
     PROJECT_ROOT="$root"
     RESEARCH_PLAN="$root/autoresearch/research-plan.md"
     PROGRESS_FILE="$root/autoresearch/progress.txt"
-    ARCHIVE_DIR="$root/autoresearch/archive"
     _debug "try_resolve: matched autoresearch/research-plan.md layout"
     return 0
   fi
@@ -107,7 +106,6 @@ try_resolve() {
     PROJECT_ROOT="$root"
     RESEARCH_PLAN="$root/research-plan.md"
     PROGRESS_FILE="$root/progress.txt"
-    ARCHIVE_DIR="$root/scripts/archive"
     _debug "try_resolve: matched root research-plan.md layout"
     return 0
   fi
@@ -118,7 +116,6 @@ try_resolve() {
 PROJECT_ROOT=""
 RESEARCH_PLAN=""
 PROGRESS_FILE=""
-ARCHIVE_DIR=""
 
 for cand in "${ROOT_CANDIDATES[@]}"; do
   if try_resolve "$cand"; then
@@ -170,7 +167,6 @@ _debug "claude=$(command -v claude)"
 _debug "PROJECT_ROOT=$PROJECT_ROOT"
 _debug "RESEARCH_PLAN=$RESEARCH_PLAN"
 _debug "PROGRESS_FILE=$PROGRESS_FILE"
-_debug "ARCHIVE_DIR=$ARCHIVE_DIR"
 _debug "RUN_SKILL=$RUN_SKILL"
 
 # ── 构建提示词 ────────────────────────────────────────────────
@@ -210,34 +206,18 @@ trap "rm -f \"$PROMPT_FILE\"" EXIT
 
 _debug "PROMPT_FILE=$PROMPT_FILE size_bytes=$(wc -c <"$PROMPT_FILE" | tr -d ' ')"
 
-# ── 归档上次进度文件 ─────────────────────────────────────────
-
-if [ -f "$PROGRESS_FILE" ]; then
-  DATE=$(date +%Y-%m-%d)
-  DEST_DIR="${ARCHIVE_DIR}/$DATE"
-  mkdir -p "$DEST_DIR"
-
-  ARCHIVE_DEST="$DEST_DIR/progress.txt"
-  COUNTER=1
-  while [ -f "$ARCHIVE_DEST" ]; do
-    ARCHIVE_DEST="$DEST_DIR/progress-$COUNTER.txt"
-    COUNTER=$((COUNTER + 1))
-  done
-
-  cp "$PROGRESS_FILE" "$ARCHIVE_DEST"
-  echo "已归档上次进度到: $ARCHIVE_DEST"
-  _debug "archived progress: $ARCHIVE_DEST"
-fi
-
 # ── 初始化进度文件 ────────────────────────────────────────────
+# 归档逻辑由 SKILL.md 指导 Agent 在首次迭代时执行
 
-cat > "$PROGRESS_FILE" <<EOF
+if [ ! -f "$PROGRESS_FILE" ]; then
+  cat > "$PROGRESS_FILE" <<EOF
 # Autoresearch 进度日志
 # 项目: $(basename "$PROJECT_ROOT")
 # 启动时间: $(date)
 # 最大迭代: $MAX_ITERATIONS
 ---
 EOF
+fi
 
 # ── 启动信息 ──────────────────────────────────────────────────
 
@@ -271,15 +251,12 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   } > "$ITERATION_PROMPT"
 
   _debug "iteration=$i ITERATION_PROMPT=$ITERATION_PROMPT size_bytes=$(wc -c <"$ITERATION_PROMPT" | tr -d ' ')"
-  _debug "running: claude --dangerously-skip-permissions --print < \"$ITERATION_PROMPT\""
 
   CLAUDE_START=$(date +%s)
   # 运行 claude agent
   OUTPUT=$(claude --dangerously-skip-permissions --print --model haiku < "$ITERATION_PROMPT" 2>&1 | tee /dev/stderr) || true
   CLAUDE_END=$(date +%s)
   _debug "claude finished iteration=$i duration_sec=$((CLAUDE_END - CLAUDE_START)) output_chars=${#OUTPUT}"
-
-  rm -f "$ITERATION_PROMPT"
 
   # 检查 Agent 是否发出完成信号
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then

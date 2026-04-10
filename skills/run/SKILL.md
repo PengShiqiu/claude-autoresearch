@@ -35,6 +35,22 @@ user-invocable: true
 - `progress.txt` — 历史实验记录、上次指标值
 - 项目源码 — 聚焦热点路径
 
+### 步骤 0：归档上一轮运行（首次迭代时执行）
+
+**仅在本次是第 1 次迭代时执行此步骤，后续迭代跳过。**
+
+检查 `progress.txt` 是否存在且包含上次运行的记录：
+
+1. 若 `progress.txt` 存在 **且** 包含 `<promise>COMPLETE</promise>`：
+   - 表示上次研究已完成，归档进度文件
+   - 创建归档目录：`autoresearch/archive/YYYY-MM-DD/`（或 `scripts/archive/YYYY-MM-DD/`，取决于项目布局）
+   - 将 `progress.txt` 复制到归档目录（如已存在同名文件则追加序号）
+   - 用新的标题头重置 `progress.txt`（保留项目名、启动时间、最大迭代数等头部信息）
+2. 若 `progress.txt` 存在 **但不包含** `<promise>COMPLETE</promise>`：
+   - 表示上次研究未结束，保留进度文件继续研究，不做归档
+3. 若 `progress.txt` 不存在：
+   - 无需操作（脚本已自动创建）
+
 ### 步骤 3：选择实验方向
 
 **这是你最核心的自主决策。** 根据以下信息综合判断：
